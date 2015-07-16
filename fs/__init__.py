@@ -18,6 +18,44 @@ implementations of this interface such as:
 __version__ = "0.5.3a0"
 __author__ = "Will McGugan (will@willmcgugan.com)"
 
+
+
+# FIXED: mock _pyio as io
+import sys
+import _pyio
+sys.modules['io'] = _pyio
+
+# FIXED: monk  locale.getpreferredencoding(do_setlocale=True)
+import locale
+locale.getpreferredencoding = lambda x=True: "utf-8"
+
+
+# TODO:
+# FIXED: monk sys.getfilesystemencoding
+import sys
+sys.getfilesystemencoding = lambda: "utf-8"
+
+# TODO: encoding problem
+import builtins
+_open = builtins.open
+def monk_open(*args, **kwargs):
+    mode = 'r'
+    if len(args) >= 2:
+        mode = args[1]
+    elif 'mode' in kwargs:
+        mode = kwargs['mode']
+    
+    if 'b' not in mode:
+        kwargs['encoding'] = 'utf-8'
+    return _open(*args, **kwargs)
+builtins.open = monk_open
+
+# FIXED: mock os.device_encoding(fp)
+# import os
+# os.device_encoding = lambda fp: "utf-8"
+
+
+
 #  provide these by default so people can use 'fs.path.basename' etc.
 from fs import errors
 from fs import path
