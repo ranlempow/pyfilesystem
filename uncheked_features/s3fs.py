@@ -29,6 +29,7 @@ from fs.filelike import LimitBytesFile
 from fs import iotools
 
 import six
+import collections
 
 # Boto is not thread-safe, so we need to use a per-thread S3 connection.
 if hasattr(threading,"local"):
@@ -41,7 +42,7 @@ else:
             try:
                 return self._map[(threading.currentThread(),attr)]
             except KeyError:
-                raise AttributeError, attr
+                raise AttributeError(attr)
         def __setattr__(self,attr,value):
             self._map[(threading.currentThread(),attr)] = value
 
@@ -106,7 +107,7 @@ class S3FS(FS):
             prefix = prefix[1:]
         if not prefix.endswith(separator) and prefix != "":
             prefix = prefix + separator
-        if isinstance(prefix,unicode):
+        if isinstance(prefix,str):
             prefix = prefix.encode("utf8")
         if aws_access_key is None:
             if "AWS_ACCESS_KEY_ID" not in os.environ:
@@ -149,7 +150,7 @@ class S3FS(FS):
                     b.get_key(self._prefix)
                 else:
                     b = self._s3conn.get_bucket(self._bucket_name, validate=1)
-            except S3ResponseError, e:
+            except S3ResponseError as e:
                 if "404 Not Found" not in str(e):
                     raise
                 b = self._s3conn.create_bucket(self._bucket_name)
@@ -179,7 +180,7 @@ class S3FS(FS):
         s3path = self._prefix + path
         if s3path and s3path[-1] == self._separator:
             s3path = s3path[:-1]
-        if isinstance(s3path,unicode):
+        if isinstance(s3path,str):
             s3path = s3path.encode("utf8")
         return s3path
 
@@ -220,9 +221,9 @@ class S3FS(FS):
 
     def _sync_set_contents(self,key,contents):
         """Synchronously set the contents of a key."""
-        if isinstance(key,basestring):
+        if isinstance(key,str):
             key = self._s3bukt.new_key(key)
-        if isinstance(contents,basestring):
+        if isinstance(contents,str):
             key.set_contents_from_string(contents)
         elif hasattr(contents,"md5"):
             hexmd5 = contents.md5
@@ -338,7 +339,7 @@ class S3FS(FS):
         # the directory itself, which other tools may not create.
         ks = self._s3bukt.list(prefix=s3path,delimiter=self._separator)
         try:
-            iter(ks).next()
+            next(iter(ks))
         except StopIteration:
             return False
         else:
@@ -398,7 +399,7 @@ class S3FS(FS):
             # Skip over the entry for the directory itself, if it exists
             name = self._uns3path(k.name,s3path)
             if name != "":
-                if not isinstance(name,unicode):
+                if not isinstance(name,str):
                     name = name.decode("utf8")
                 if name.endswith(self._separator):
                     name = name[:-1]
@@ -432,7 +433,7 @@ class S3FS(FS):
         elif files_only:
             keys = ((nm,k) for (nm,k) in keys if not self._key_is_dir(k))
         if wildcard is not None:
-            if callable(wildcard):
+            if isinstance(wildcard, collections.Callable):
                 keys = ((nm,k) for (nm,k) in keys if wildcard(nm))
             else:
                 keys = ((nm,k) for (nm,k) in keys if fnmatch(nm,wildcard))
@@ -571,14 +572,14 @@ class S3FS(FS):
         else:
             info["name"] = basename(self._uns3key(k.name))
         if self._key_is_dir(key):
-            info["st_mode"] = 0700 | statinfo.S_IFDIR
+            info["st_mode"] = 0o700 | statinfo.S_IFDIR
         else:
-            info["st_mode"] =  0700 | statinfo.S_IFREG
+            info["st_mode"] =  0o700 | statinfo.S_IFREG
         if hasattr(key,"size"):
             info['size'] = int(key.size)
         etag = getattr(key,"etag",None)
         if etag is not None:
-            if isinstance(etag,unicode):
+            if isinstance(etag,str):
                etag = etag.encode("utf8")
             info['etag'] = etag.strip('"').strip("'")
         if hasattr(key,"last_modified"):
@@ -631,7 +632,7 @@ class S3FS(FS):
         s3path_src = self._s3path(src)
         try:
             self._s3bukt.copy_key(s3path_dst,self._bucket_name,s3path_src)
-        except S3ResponseError, e:
+        except S3ResponseError as e:
             if "404 Not Found" in str(e):
                 msg = "Source is not a file: %(path)s"
                 raise ResourceInvalidError(src, msg=msg)
@@ -662,11 +663,11 @@ class S3FS(FS):
             for k in self._s3bukt.list(prefix=prefix):
                 name = relpath(self._uns3path(k.name,prefix))
                 if name != "":
-                    if not isinstance(name,unicode):
+                    if not isinstance(name,str):
                         name = name.decode("utf8")
                     if not k.name.endswith(self._separator):
                         if wildcard is not None:
-                            if callable(wildcard):
+                            if isinstance(wildcard, collections.Callable):
                                 if not wildcard(basename(name)):
                                     continue
                             else:
@@ -690,10 +691,10 @@ class S3FS(FS):
             for k in self._s3bukt.list(prefix=prefix):
                 name = relpath(self._uns3path(k.name,prefix))
                 if name != "":
-                    if not isinstance(name,unicode):
+                    if not isinstance(name,str):
                         name = name.decode("utf8")
                     if wildcard is not None:
-                        if callable(wildcard):
+                        if isinstance(wildcard, collections.Callable):
                             if not wildcard(basename(name)):
                                 continue
                         else:
@@ -717,11 +718,11 @@ class S3FS(FS):
             for k in self._s3bukt.list(prefix=prefix):
                 name = relpath(self._uns3path(k.name,prefix))
                 if name != "":
-                    if not isinstance(name,unicode):
+                    if not isinstance(name,str):
                         name = name.decode("utf8")
                     if not k.name.endswith(self._separator):
                         if wildcard is not None:
-                            if callable(wildcard):
+                            if isinstance(wildcard, collections.Callable):
                                 if not wildcard(basename(name)):
                                     continue
                             else:
@@ -732,16 +733,16 @@ class S3FS(FS):
 
 
 def _eq_utf8(name1,name2):
-    if isinstance(name1,unicode):
+    if isinstance(name1,str):
         name1 = name1.encode("utf8")
-    if isinstance(name2,unicode):
+    if isinstance(name2,str):
         name2 = name2.encode("utf8")
     return name1 == name2
 
 def _startswith_utf8(name1,name2):
-    if isinstance(name1,unicode):
+    if isinstance(name1,str):
         name1 = name1.encode("utf8")
-    if isinstance(name2,unicode):
+    if isinstance(name2,str):
         name2 = name2.encode("utf8")
     return name1.startswith(name2)
 

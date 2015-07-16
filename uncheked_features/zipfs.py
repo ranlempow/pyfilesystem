@@ -21,6 +21,7 @@ from memoryfs import MemoryFS
 import tempfs
 
 from six import PY3
+import collections
 
 
 class ZipOpenError(CreateFailedError):
@@ -74,7 +75,7 @@ class _ExceptionProxy(object):
     def __setattr__(self, name, value):
         raise ValueError("Zip file has been closed")
 
-    def __nonzero__(self):
+    def __bool__(self):
         return False
 
 
@@ -117,7 +118,7 @@ class ZipFS(FS):
         self.zip_mode = mode
         self.encoding = encoding
 
-        if isinstance(zip_file, basestring):
+        if isinstance(zip_file, str):
             zip_file = os.path.expanduser(os.path.expandvars(zip_file))
             zip_file = os.path.normpath(os.path.abspath(zip_file))
             self._zip_file_string = True
@@ -126,10 +127,10 @@ class ZipFS(FS):
 
         try:
             self.zf = ZipFile(zip_file, mode, compression_type, allow_zip_64)
-        except BadZipfile, bzf:
+        except BadZipfile as bzf:
             raise ZipOpenError("Not a zip file or corrupt (%s)" % str(zip_file),
                                details=bzf)
-        except IOError, ioe:
+        except IOError as ioe:
             if str(ioe).startswith('[Errno 22] Invalid argument'):
                 raise ZipOpenError("Not a zip file or corrupt (%s)" % str(zip_file),
                                    details=ioe)
@@ -151,7 +152,7 @@ class ZipFS(FS):
         return "<ZipFS: %s>" % self.zip_path
 
     def __unicode__(self):
-        return u"<ZipFS: %s>" % self.zip_path
+        return "<ZipFS: %s>" % self.zip_path
 
     def _decode_path(self, path):
         if PY3:
@@ -280,8 +281,8 @@ class ZipFS(FS):
         try:
             zi = self.zf.getinfo(self._encode_path(path))
             zinfo = dict((attrib, getattr(zi, attrib)) for attrib in dir(zi) if not attrib.startswith('_'))
-            for k, v in zinfo.iteritems():
-                if callable(v):
+            for k, v in zinfo.items():
+                if isinstance(v, collections.Callable):
                     zinfo[k] = v()
         except KeyError:
             zinfo = {'file_size': 0}

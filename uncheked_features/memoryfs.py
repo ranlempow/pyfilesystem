@@ -23,6 +23,7 @@ import threading
 
 import six
 from six import b
+import collections
 
 
 def _check_mode(mode, mode_chars):
@@ -78,10 +79,10 @@ class MemoryFile(object):
         return "<MemoryFile in %s %s>" % (self.memory_fs, self.path)
 
     def __repr__(self):
-        return u"<MemoryFile in %s %s>" % (self.memory_fs, self.path)
+        return "<MemoryFile in %s %s>" % (self.memory_fs, self.path)
 
     def __unicode__(self):
-        return u"<MemoryFile in %s %s>" % (self.memory_fs, self.path)
+        return "<MemoryFile in %s %s>" % (self.memory_fs, self.path)
 
     def __del__(self):
         if not self.closed:
@@ -101,7 +102,7 @@ class MemoryFile(object):
     def next(self):
         if 'r' not in self.mode and '+' not in self.mode:
             raise IOError("File not open for reading")
-        return self.mem_file.next()
+        return next(self.mem_file)
 
     @seek_and_lock
     def readline(self, *args, **kwargs):
@@ -218,7 +219,7 @@ class DirEntry(object):
         if self.isfile():
             return "<file %s>" % self.name
         elif self.isdir():
-            return "<dir %s>" % "".join("%s: %s" % (k, v.desc_contents()) for k, v in self.contents.iteritems())
+            return "<dir %s>" % "".join("%s: %s" % (k, v.desc_contents()) for k, v in self.contents.items())
 
     def isdir(self):
         return self.type == "dir"
@@ -274,7 +275,7 @@ class MemoryFS(FS):
 
         self.dir_entry_factory = DirEntry
         self.file_factory = file_factory or MemoryFile
-        if not callable(self.file_factory):
+        if not isinstance(self.file_factory, collections.Callable):
             raise ValueError("file_factory should be callable")
 
         self.root = self._make_dir_entry('dir', 'root')
@@ -559,10 +560,10 @@ class MemoryFS(FS):
             raise ResourceNotFoundError(path)
         if dir_entry.isfile():
             raise ResourceInvalidError(path, msg="not a directory: %(path)s")
-        paths = dir_entry.contents.keys()
+        paths = list(dir_entry.contents.keys())
         for (i,p) in enumerate(paths):
-            if not isinstance(p,unicode):
-                paths[i] = unicode(p)
+            if not isinstance(p,str):
+                paths[i] = str(p)
         return self._listdir_helper(path, paths, wildcard, full, absolute, dirs_only, files_only)
 
     @synchronize
@@ -578,10 +579,10 @@ class MemoryFS(FS):
         info['accessed_time'] = dir_entry.accessed_time
 
         if dir_entry.isdir():
-            info['st_mode'] = 0755 | stat.S_IFDIR
+            info['st_mode'] = 0o755 | stat.S_IFDIR
         else:
             info['size'] = len(dir_entry.data or b(''))
-            info['st_mode'] = 0666 | stat.S_IFREG
+            info['st_mode'] = 0o666 | stat.S_IFREG
 
         return info
 
@@ -671,12 +672,12 @@ class MemoryFS(FS):
     @synchronize
     def setxattr(self, path, key, value):
         dir_entry = self._dir_entry(path)
-        key = unicode(key)
+        key = str(key)
         dir_entry.xattrs[key] = value
 
     @synchronize
     def getxattr(self, path, key, default=None):
-        key = unicode(key)
+        key = str(key)
         dir_entry = self._dir_entry(path)
         return dir_entry.xattrs.get(key, default)
 
@@ -691,4 +692,4 @@ class MemoryFS(FS):
     @synchronize
     def listxattrs(self, path):
         dir_entry = self._dir_entry(path)
-        return dir_entry.xattrs.keys()
+        return list(dir_entry.xattrs.keys())

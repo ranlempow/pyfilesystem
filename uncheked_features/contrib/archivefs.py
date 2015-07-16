@@ -18,6 +18,7 @@ from fs.filelike import StringIO
 from fs import mountfs
 
 import libarchive
+import collections
 
 ENCODING = libarchive.ENCODING
 
@@ -62,7 +63,7 @@ class ArchiveFS(FS):
         :param thread_synchronize: set to True (default) to enable thread-safety
         """
         super(ArchiveFS, self).__init__(thread_synchronize=thread_synchronize)
-        if isinstance(f, basestring):
+        if isinstance(f, str):
             self.fileobj = None
             self.root_path = f
         else:
@@ -83,7 +84,7 @@ class ArchiveFS(FS):
         return "<ArchiveFS: %s>" % self.root_path
 
     def __unicode__(self):
-        return u"<ArchiveFS: %s>" % self.root_path
+        return "<ArchiveFS: %s>" % self.root_path
 
     def getmeta(self, meta_name, default=NoDefaultMeta):
         if meta_name == 'read_only':
@@ -166,7 +167,7 @@ class ArchiveFS(FS):
                 info['st_mode'] = entry.mode
             else:
                 value = getattr(entry, attr)
-                if callable(value):
+                if isinstance(value, collections.Callable):
                     continue
                 info[attr] = value
         return info
@@ -215,7 +216,7 @@ class ArchiveMountFS(mountfs.MountFS):
         # so we can close those here. It may not be safe to close a file system
         # that the user provided. However, it is definitely NOT safe to leave
         # one open.
-        if callable(getattr(fs, 'close', None)):
+        if isinstance(getattr(fs, 'close', None), collections.Callable):
             fs.close()
 
     def _delegate(self, path, auto_mount=True):
@@ -446,18 +447,18 @@ class ArchiveMountFS(mountfs.MountFS):
             else:
                 listing = self.listdir(path, *args, **kwargs)
             if dirs_only:
-                listing = filter(isdir, listing)
+                listing = list(filter(isdir, listing))
             return listing
 
         if wildcard is None:
             wildcard = lambda f:True
-        elif not callable(wildcard):
+        elif not isinstance(wildcard, collections.Callable):
             wildcard_re = re.compile(fnmatch.translate(wildcard))
             wildcard = lambda fn:bool (wildcard_re.match(fn))
 
         if dir_wildcard is None:
             dir_wildcard = lambda f:True
-        elif not callable(dir_wildcard):
+        elif not isinstance(dir_wildcard, collections.Callable):
             dir_wildcard_re = re.compile(fnmatch.translate(dir_wildcard))
             dir_wildcard = lambda fn:bool (dir_wildcard_re.match(fn))
 
