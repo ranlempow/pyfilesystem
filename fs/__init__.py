@@ -29,26 +29,25 @@ sys.modules['io'] = _pyio
 import locale
 locale.getpreferredencoding = lambda x=True: "utf-8"
 
-
 # TODO:
 # FIXED: monk sys.getfilesystemencoding
 import sys
 sys.getfilesystemencoding = lambda: "utf-8"
 
 # TODO: encoding problem
-import builtins
-_open = builtins.open
-def monk_open(*args, **kwargs):
-    mode = 'r'
-    if len(args) >= 2:
-        mode = args[1]
-    elif 'mode' in kwargs:
-        mode = kwargs['mode']
-    
-    if 'b' not in mode:
-        kwargs['encoding'] = 'utf-8'
-    return _open(*args, **kwargs)
-builtins.open = monk_open
+# import builtins
+# _open = builtins.open
+# def monk_open(*args, **kwargs):
+#     mode = 'r'
+#     if len(args) >= 2:
+#         mode = args[1]
+#     elif 'mode' in kwargs:
+#         mode = kwargs['mode']
+#     
+#     if 'b' not in mode:
+#         kwargs['encoding'] = 'utf-8'
+#     return _open(*args, **kwargs)
+# builtins.open = monk_open
 
 # FIXED: mock os.device_encoding(fp)
 # import os
