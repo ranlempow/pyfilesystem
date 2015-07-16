@@ -961,8 +961,10 @@ class ThreadingTestCases(object):
         return thread
 
     def _runThreads(self, *funcs):
-        check_interval = sys.getcheckinterval()
-        sys.setcheckinterval(1)
+        getcheckinterval = sys.getswitchinterval
+        setcheckinterval = sys.setswitchinterval
+        check_interval = getcheckinterval()
+        setcheckinterval(1)
         try:
             errors = []
             threads = [self._makeThread(f, errors) for f in funcs]
@@ -973,7 +975,7 @@ class ThreadingTestCases(object):
             for (c, e, t) in errors:
                 raise e.with_traceback(t)
         finally:
-            sys.setcheckinterval(check_interval)
+            setcheckinterval(check_interval)
 
     def test_setcontents_threaded(self):
         def setcontents(name, contents):
