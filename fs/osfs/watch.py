@@ -13,7 +13,7 @@ import threading
 
 from fs.errors import *
 from fs.path import *
-from fs.watch import *
+# from fs.watch import *
 
 OSFSWatchMixin = None
 
