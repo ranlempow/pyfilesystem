@@ -1,0 +1,41 @@
+fs/osfs/__init__.py
+	-from fs.osfs.watch import OSFSWatchMixin
+	-class OSFS(OSFSXAttrMixin, OSFSWatchMixin, FS):
+	+class OSFS(OSFSXAttrMixin, FS):
+fs/osfs/xattrs.py
+fs/wrapfs/__init__.py
+fs/wrapfs/subfs.py
+fs/tests/data/__init__.py
+fs/tests/data/UTF-8-demo.txt
+fs/tests/__init__.py
+fs/tests/test_errors.py
+	-TestFSError
+fs/tests/test_fs.py
+	-from fs import mountfs
+	-TestMountFS
+	-TestMountFS_atroot
+	-TestMountFS_stacked
+fs/tests/test_iotools.py
+fs/tests/test_path.py
+fs/tests/test_utils.py
+	-test_copydir_root
+	-test_copydir_indir
+	-test_movedir_indir
+	-test_movedir_root
+fs/tests/test_wrapfs.py
+	-from fs.wrapfs.lazyfs import LazyFS
+	-class TestLazyFS(unittest.TestCase, FSTestCases, ThreadingTestCases):
+	-from fs.wrapfs.limitsizefs import LimitSizeFS
+	-class TestLimitSizeFS(TestWrapFS):
+	-from fs.wrapfs.hidedotfilesfs import HideDotFilesFS
+	-class TestHideDotFilesFS(unittest.TestCase):
+fs/__init__.py
+fs/base.py
+fs/errors.py
+fs/filelike.py
+fs/iotools.py
+fs/local_functools.py
+fs/memoryfs.py
+fs/path.py
+fs/tempfs.py
+fs/utils.py

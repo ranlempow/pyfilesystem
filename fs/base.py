@@ -12,7 +12,7 @@ For more information regarding implementing a working PyFilesystem interface, se
 
 """
 
-from __future__ import with_statement
+
 
 __all__ = ['DummyLock',
            'silence_fserrors',
@@ -29,6 +29,7 @@ import fnmatch
 import datetime
 import time
 import errno
+import collections
 try:
     import threading
 except ImportError:
@@ -109,7 +110,7 @@ class NullFile(object):
     def flush(self):
         pass
 
-    def next(self):
+    def __next__(self):
         raise StopIteration
 
     def readline(self, *args, **kwargs):
@@ -560,7 +561,7 @@ class FS(object):
             raise ValueError("dirs_only and files_only can not both be True")
 
         if wildcard is not None:
-            if not callable(wildcard):
+            if not isinstance(wildcard, collections.Callable):
                 wildcard_re = re.compile(fnmatch.translate(wildcard))
                 wildcard = lambda fn: bool(wildcard_re.match(fn))
             entries = [p for p in entries if wildcard(p)]
@@ -900,7 +901,7 @@ class FS(object):
                                   chunk_size=1024 * 64,
                                   progress_callback=progress_callback,
                                   finished_callback=finished_callback)
-            except Exception, e:
+            except Exception as e:
                 if error_callback is not None:
                     error_callback(e)
             finally:
@@ -988,13 +989,13 @@ class FS(object):
 
         if wildcard is None:
             wildcard = lambda f: True
-        elif not callable(wildcard):
+        elif not isinstance(wildcard, collections.Callable):
             wildcard_re = re.compile(fnmatch.translate(wildcard))
             wildcard = lambda fn: bool(wildcard_re.match(fn))
 
         if dir_wildcard is None:
             dir_wildcard = lambda f: True
-        elif not callable(dir_wildcard):
+        elif not isinstance(dir_wildcard, collections.Callable):
             dir_wildcard_re = re.compile(fnmatch.translate(dir_wildcard))
             dir_wildcard = lambda fn: bool(dir_wildcard_re.match(fn))
 
@@ -1156,7 +1157,7 @@ class FS(object):
     def _shutil_copyfile(cls, src_syspath, dst_syspath):
         try:
             shutil.copyfile(src_syspath, dst_syspath)
-        except IOError, e:
+        except IOError as e:
             #  shutil reports ENOENT when a parent directory is missing
             if getattr(e, "errno", None) == errno.ENOENT:
                 if not os.path.exists(dirname(dst_syspath)):
